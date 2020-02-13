@@ -1,0 +1,14 @@
+{
+    "python.linting.pylintEnabled": true,
+    "python.linting.enabled": true,
+    "python.linting.lintOnSave": true,
+    "python.formatting.provider": "black",
+    "python.linting.flake8Enabled": false,
+    "python.linting.pylintArgs": [
+        "--disable=C0114,C0115,C0116,bad-continuation,invalid-name,arguments-differ"
+    ],
+    "editor.formatOnSave": true,
+    "files.trimFinalNewlines": true,
+    "files.trimTrailingWhitespace": true,
+    "python.pythonPath": "/home/theo/miniconda3/envs/tcia/bin/python",
+}
