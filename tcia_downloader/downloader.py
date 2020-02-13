@@ -1,40 +1,40 @@
 import logging
 import pathlib
-from functools import partial
-from typing import Dict
 
 import requests
 
 # pylint: disable=logging-format-interpolation
 
+logger = logging.getLogger("TCIA DOWNLOAD")
 
-def url_download(url: str, path: str, params: Dict):
+API_ENDPOINT = (
+    "https://services.cancerimagingarchive.net/services/v3/TCIA/query/getImage"
+)
+QUERY_PARAM_NAME = "SeriesInstanceUID"
 
-    r = requests.get(url, params=params, stream=True)
 
-    with open(path, "wb") as f:
+def tcia_images_download(path: str, instanceID: str):
 
-        for ch in r:
+    logger.info(f"starting download of {instanceID}")
+    save_path = pathlib.Path(path)
+    logger.info(f"Savepath is {save_path.absolute()}")
 
-            f.write(ch)
+    response = requests.get(
+        API_ENDPOINT, params={QUERY_PARAM_NAME: instanceID}, stream=True
+    )
+
+    with save_path.open(mode="wb") as f:
+        for chunk in response:
+            f.write(chunk)
+
     return
 
 
-tcia_images_download = partial(
-    url_download,
-    url="https://services.cancerimagingarchive.net/services/v3/TCIA/query/getImage",
-)
-
-
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
-    logging.info("trying to dl one image from TCIA")
-    save_path = pathlib.Path("./test.zip")
-    logging.info(f"Savepath is {save_path.absolute()}")
+    logger.info("trying to dl one image from TCIA")
+    test_path = pathlib.Path("./test.zip")
+    logger.info(f"Testpath is {test_path.absolute()}")
     tcia_images_download(
-        path=str(save_path),
-        params={
-            "SeriesInstanceUID": "1.3.6.1.4.1.14519.5.2.1.3098.5025.242083141114562987765795908595"
-        },
+        path=str(test_path),
+        instanceID="1.3.6.1.4.1.14519.5.2.1.3098.5025.242083141114562987765795908595",
     )
-    logging.info(f"Done")

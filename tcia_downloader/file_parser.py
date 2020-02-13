@@ -2,10 +2,9 @@ import pathlib
 import logging
 import argparse
 
+logging.getLogger("TCIA_DOWNLOAD")
 parser = argparse.ArgumentParser()
 parser.add_argument("--file", "-f", help="The path to the TCIA manifest file to parse")
-
-logging.basicConfig(level=logging.DEBUG)
 
 
 def get_series_to_dl(manifest_path: str):
