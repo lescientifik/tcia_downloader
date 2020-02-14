@@ -5,14 +5,15 @@ import logging
 import pathlib
 import concurrent.futures
 from datetime import datetime
-from tqdm import tqdm
 
 from tcia_downloader.downloader import tcia_images_download
 from tcia_downloader.file_parser import get_series_to_dl, parser
 
 # pylint: disable=logging-format-interpolation
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(
+    description="Download a list of dicom series from a TCIA manifest file"
+)
 parser.add_argument(
     "--manifest", "-m", help="The path to the TCIA manifest file to parse"
 )
