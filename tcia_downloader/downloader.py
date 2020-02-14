@@ -2,6 +2,7 @@ import logging
 import pathlib
 
 import requests
+from tcia_downloader.utils import coroutine
 
 # pylint: disable=logging-format-interpolation
 
@@ -13,7 +14,8 @@ API_ENDPOINT = (
 QUERY_PARAM_NAME = "SeriesInstanceUID"
 
 
-def tcia_images_download(path: str, instanceID: str):
+@coroutine
+def tcia_images_download(path: str, instanceID: str) -> pathlib.Path:
     """Download images form tcia in zip format
 
     Parameters

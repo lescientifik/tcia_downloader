@@ -1,15 +1,18 @@
 from __future__ import absolute_import
 
 import argparse
-import logging
-import pathlib
 import concurrent.futures
-from datetime import datetime
+import logging
 
 from tcia_downloader.downloader import tcia_images_download
 from tcia_downloader.file_parser import get_series_to_dl, parser
+from tcia_downloader.logger import create_main_logger
+from tcia_downloader.constants import APP_NAME
+from tcia_downloader.unzipper import unzip, remove
 
 # pylint: disable=logging-format-interpolation
+
+logger = logging.getLogger(f"{APP_NAME}.{__name__}")
 
 parser = argparse.ArgumentParser(
     description="Download a list of dicom series from a TCIA manifest file"
@@ -22,34 +25,34 @@ parser.add_argument(
 )
 
 
+def source(src, first_target):
+    with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
+        for data in src:
+            executor.submit(first_target.send, data)
+
+
+def multiprocess_source(src):
+    for serie in src:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
+        future_to_serie = {
+            executor.submit(
+                tcia_images_download, path=dirpath / f"{serie}.zip", instanceID=serie
+            ): serie
+            for serie in series
+        }
+
+
+
 def main():
     args = parser.parse_args()
-    # Setup the logger
-    logfilename = f"{datetime.now().strftime('%Y%m%d_%H%M')}_log.txt"
-    logger = logging.getLogger("TCIA DOWNLOAD")
-    logger.setLevel(logging.DEBUG)
-    stream_handler = logging.StreamHandler()
-    stream_handler.setLevel(logging.DEBUG)
-    logger.addHandler(stream_handler)
 
-    logger.info(f"log file created at {pathlib.Path(logfilename).absolute()}")
+    dirpath = create_main_logger(args.out)
 
-    # sanity check for dirpath
-    dirpath = pathlib.Path(args.out)
-    if not dirpath.exists():
-        dirpath.mkdir()
-        logger.info(f"Creating the directory at {dirpath.absolute()}")
-    if dirpath.is_dir():
-        logger.info(
-            f"Files will be downloaded at {dirpath.absolute()}"
-            f"Any existing file with instance_UID.zip patterns will be overwritten"
-        )
-    else:
-        raise ValueError()
-    logfile_path = dirpath / logfilename
-    file_handler = logging.FileHandler(logfile_path.absolute())
-    file_handler.setLevel(logging.DEBUG)
-    logger.addHandler(file_handler)
+    # get the IDs generator
+    series = get_series_to_dl(args.manifest)
+    src = args.manifest
+
+    pipeline = [tcia_images_download, unzip, remove]
 
     # real work
     with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
@@ -57,10 +60,11 @@ def main():
             executor.submit(
                 tcia_images_download, path=dirpath / f"{serie}.zip", instanceID=serie
             ): serie
-            for serie in get_series_to_dl(args.manifest)
+            for serie in series
         }
-        for future in concurrent.futures.as_completed(future_to_serie):
-            serie = future_to_serie[future]
+        concurrent.futures.wait(future_to_serie)
+        # for _ in concurrent.futures.as_completed(future_to_serie):
+        #     serie = future_to_serie[future]
     logger.info(f"All files downloaded!")
 
 
