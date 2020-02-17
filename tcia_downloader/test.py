@@ -233,14 +233,6 @@ def read_volumes_from_tmp_dir(tmp_dir):
             yield reader.Execute
 
 
-def get_short_metadata_dict(filenames: Iterable) -> Dict:
-    metadata_dict = dict()
-    for i, filename in enumerate(filenames):
-        with pydicom.dcmread(filename, stop_before_pixels=True) as dcm:
-            if i == 0:  # first iteration
-                metadata_dict = {**dcm.items()}
-
-
 def get_short_metadata(filename) -> Dict:
     field_names = (
         "StudyDate",
