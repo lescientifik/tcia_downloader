@@ -1,3 +1,4 @@
+import logging
 import os
 import pathlib
 import re
@@ -5,21 +6,20 @@ import shutil
 import sys
 import tempfile
 import zipfile
+import time
 from collections import namedtuple
-from itertools import dropwhile
-from typing import BinaryIO, Callable, Dict, Union
-from functools import partial, update_wrapper
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import BinaryIO, Callable, Dict, List, Union, Generator
 
 import requests
 import SimpleITK as sitk
 
 FilePath = Union[str, os.PathLike]
 
-
 # source
 
 
-def read_txt(filepath: str) -> str:
+def read_txt(fileobj: BinaryIO) -> str:
     """Extract lines from file.
 
     This is a generator encapsulation for reading lines in a file.
@@ -28,18 +28,16 @@ def read_txt(filepath: str) -> str:
 
     Parameters
     ----------
-    filepath : str or os.PathLike compatible object
-        The path for
-
+    filepath : BinaryIO
+        An open file
 
     Yields
     -------
     str
         A line
     """
-    with open(filepath, "r") as file:
-        for line in file:
-            yield line
+    for line in fileobj:
+        yield line
 
 
 def remove_trailing_n(line: str) -> str:
@@ -80,14 +78,27 @@ def download(
         The response. Nothing will be downloaded until you access any attribute
         on the object (stream = True internally)
     """
-    r = session.get(endpoint, params=params, stream=True)
+    r = session.get(endpoint, params=params)
     return r
 
 
-def tcia_downloader(session, seriesID):
-    return download(
-        session, endpoint=tcia_endpoint, params={"SeriesInstanceUID": seriesID}
-    )
+def tcia_downloader(seriesID):
+    tmp_file = tempfile.NamedTemporaryFile()
+    with requests.get(
+        tcia_endpoint, params={"SeriesInstanceUID": seriesID}, stream=True
+    ) as r:
+        r.raise_for_status()
+        # f = open(tmp_file, "wb")
+        for chunk in r.iter_content(chunk_size=8192):
+            if chunk:  # filter out keep-alive new chunks
+                tmp_file.write(chunk)
+        return tmp_file
+    # tmp_file = tempfile.NamedTemporaryFile()
+    # with requests.get(tcia_endpoint, params={"SeriesInstanceUID": seriesID}) as r:
+    #     r.raise_for_status()
+    #     logging.debug(seriesID)
+    #     tmp_file.write(r.content)
+    #     return tmp_file
 
 
 def tmp_download(response: requests.Response) -> BinaryIO:
@@ -137,7 +148,7 @@ def unzip_file(file: BinaryIO) -> tempfile.TemporaryDirectory:
     """
     tmp_dir = tempfile.TemporaryDirectory()
     with zipfile.ZipFile(file, "r") as archive:
-        archive.extractall(tmp_dir)
+        archive.extractall(tmp_dir.name)
     return tmp_dir
 
 
@@ -244,30 +255,30 @@ def metadata_reader():
     return reader
 
 
-def extract_dcm_metadata(file: str, reader: Callable):
-    file_object = pathlib.Path(file)
+def extract_dcm_metadata(filename: str, reader: Callable):
+    file_object = pathlib.Path(filename)
     if not file_object.exists():
         raise FileNotFoundError
-    reader.SetFileName(file)
+    reader.SetFileName(filename)
     reader.ReadImageInformation()
     metadata = {
         key: reader.GetMetaData(key)
         for key in data_elements_machine
-        if reader.HasMetaDataKeys(key)
+        if reader.HasMetaDataKey(key)
     }
     metadata.update(file=file_object)
     metadata = {**default_elements_machine, **metadata}
     return metadata
 
 
-def mv_dcm(metadata: Dict, base_folder) -> None:
+def mv_dcm(metadata: Dict, base_folder: pathlib.Path) -> None:
     old_path = metadata["file"]
-    new_path = pathlib.Path(base_folder) / metadata_to_filepath(metadata)
+    new_path = base_folder / metadata_to_filepath(metadata)
     if new_path.exists():
         raise FileExistsError(metadata, new_path)
     # roughly equivalent to mv: on Unix, if target exists and is a file,
     #  it will be replaced silently if the user has permission.
-    old_path.rename(new_path)
+    old_path.rename(ensure(new_path))
 
 
 def get_valid_filepath(s: str) -> str:
@@ -278,10 +289,11 @@ def get_valid_filepath(s: str) -> str:
 
 
 def metadata_to_filepath(metadata: Dict) -> str:
-    # Patient_Name_ID/Study_Desc_ID/Modality/Series_Desc_ID/Inst-Number.dcm
+    # Patient_Name_ID/Study_Date_Desc/Series_Desc_Modality/Inst-Number.dcm
     tags = [
         "0010|0010",  # Patient's name
         "0010|0020",  # ID
+        "0008|0020",  # Study Date
         "0008|1030",  # Study Desc
         "0020|000d",  # Study ID
         "0008|0060",  # Modality
@@ -292,10 +304,9 @@ def metadata_to_filepath(metadata: Dict) -> str:
     pieces = [get_valid_filepath(metadata[tag]) for tag in tags]
     patient = "_".join(pieces[:2])
     study = "_".join(pieces[2:4])
-    modality = pieces[4]
     series = "_".join(pieces[5:7])
     instance = pieces[8]
-    path = pathlib.Path(patient) / study / modality / series / f"{instance}.dcm"
+    path = pathlib.Path(patient) / study / series / f"{instance}.dcm"
     return path
 
 
@@ -347,113 +358,74 @@ def mkdir_safe(s: str) -> pathlib.Path:
     """
     path = pathlib.Path(s)
     try:
-        path.mkdir(s)
+        path.mkdir()
     except FileExistsError:
-        if is_empty(dir):
-            path.mkdir(s, exist_ok=True)
+        if is_empty(path):
+            path.mkdir(exist_ok=True)
             return path
         else:
             raise DirectoryNotEmptyError(path.absolute())
+    return path
 
 
-def make_coroutine(func):
-    def coroutine(target, *args, **kwargs):
-        while True:
-            try:
-                arg = yield
-                result = func(arg, *args, **kwargs)
-                target.send(result)
-            except GeneratorExit:
-                target.close()
-                break
-
-    def init(target, *args, **kwargs):
-        gen = coroutine(target, *args, **kwargs)
-        gen.__name__ = func.__name__
-        next(gen)
-        return gen
-
-    update_wrapper(init, func)
-
-    return init
+def classify_and_save_dcm(tmp_dirs: List, dest_folder: pathlib.Path) -> None:
+    for dcm_dir in tmp_dirs:
+        with dcm_dir as dir_:
+            files_obj = (file_obj for file_obj in pathlib.Path(dir_).rglob("*"))
+            metadatas = (
+                extract_dcm_metadata(str(file_obj), m_reader) for file_obj in files_obj
+            )
+            for m_data in metadatas:
+                mv_dcm(m_data, dest_folder)
 
 
-def make_sink(func):
-    def sink():
-        while True:
-            try:
-                arg = yield
-                func(arg)
-            except GeneratorExit:
-                break
-
-    # initialize
-    result = sink()
-    result.send(None)
-    return result
+def threaded_gen(pool, func, ite, *args, **kwargs):
+    results = []
+    for i in ite:
+        results.append(pool.submit(func, i, *args, **kwargs))
+    for result in as_completed(results):
+        logging.debug(result.result().name)
+        yield result.result()
 
 
-def make_source(iterable_):
-    def source(target):
-        for thing in iterable_:
-            target.send(thing)
-        target.close()
-
-    return source
-
-
-def run_pipeline(iterable_, ops, autoclose=True):
-    pipeline = chain(*ops)
-    first_target = pipeline[0]
-    for item in iterable_:
-        first_target.send(item)
-    if autoclose:
-        first_target.close()
+def drop_until(predicate: Callable, gen: Generator):
+    for i in gen:
+        if predicate(i):
+            break
+    for i in gen:
+        yield i
 
 
-def chain(*funcs):
-    coroutines = [make_coroutine(func) for func in funcs[:-1]]
-    print(coroutines)
-    coroutines.reverse()
-    sink = make_sink(funcs[-1])
-    targets = list()  # keep for later
-    for i, coro in enumerate(
-        coroutines, 0
-    ):  # loop from end to beginning because reverse!
-        if i == 0:  # last is glued to sink
-            target = coro(sink)
-            targets.append(target)
-        else:  # others have to glue with initialized targets
-            target = coro(targets[i - 1])
-            targets.append(target)
-    targets.reverse()  # get back the right order
-    print(targets)
-    targets.append(sink)
-    return targets
+def ensure(path: pathlib.Path):
+    # https://stackoverflow.com/questions/53027297/way-for-pathlib-path-rename-to-create-intermediate-directories
+    path.parent.mkdir(parents=True, exist_ok=True)
+    return path
 
 
 ####################################################################################
 ##################################### PIPELINE #####################################
-####################################################################################*
+####################################################################################
 
 if __name__ == "__main__":
-    lines = read_txt(sys.argv[1])
-    lines = (remove_trailing_n(line) for line in lines)
+    start = time.perf_counter()
+    logging.basicConfig(level=logging.DEBUG)
+    # setup
+    pool = ThreadPoolExecutor(3)  # multiThread
+    m_reader = metadata_reader()  # dicom headers' reader
+    manifest = pathlib.Path(sys.argv[1])
     dest_folder = mkdir_safe(sys.argv[2])
-    series_ids = dropwhile(lambda x: x != take_after, lines)
-    sess = requests.session()
-    requests = (
-        (tcia_endpoint, {"SeriesInstanceUID": series_id}) for series_id in series_ids
-    )
-    # with requests.session() as sess:
-    #     responses = (download(sess, *request) for request in requests)
-    # zips = (tmp_download(response) for response in responses)
-    # tmp_dirs = (unzip_file(zip_) for zip_ in zips)  # full of .dcm
-    # m_reader = metadata_reader()
-    # for dcm_dir in tmp_dirs:
-    #     with dcm_dir as dir_:
-    #         files = (file for file in pathlib.Path(dir_).rglob("*"))
-    #         metadatas = (extract_dcm_metadata(file, m_reader) for file in files)
-    #         for m_data in metadatas:
-    #             mv_dcm(m_data, dest_folder)
-    processor = []
+    # basic checks
+    if not all([manifest.exists(), manifest.is_file()]):
+        raise ValueError(f"{manifest} does not exist or is not a file")
+    open_manifest = manifest.open()
+
+    # processing pipeline
+    lines = read_txt(open_manifest)  # manifest file
+    lines = (remove_trailing_n(line) for line in lines)
+    series_ids = drop_until(lambda x: x == take_after, lines)
+    zips = threaded_gen(pool, tcia_downloader, series_ids)
+    tmp_dirs = (unzip_file(zip_) for zip_ in zips)  # full of .dcm
+    classify_and_save_dcm(tmp_dirs, dest_folder)
+    pool.shutdown()
+    open_manifest.close()
+    logging.debug(str(time.perf_counter() - start))
