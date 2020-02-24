@@ -1,7 +1,10 @@
+import logging
 import pathlib
 import tempfile
 import zipfile
-from typing import TextIO, IO
+from typing import IO, TextIO
+
+log = logging.getLogger(__name__)
 
 
 class DirectoryNotEmptyError(Exception):
@@ -66,7 +69,7 @@ def mv(old_path: pathlib.Path, new_path: pathlib.Path) -> None:
     """
     if new_path.exists():
         raise FileExistsError(str(new_path.absolute()))
-    #
+    log.info("moving %s to %s", str(old_path), str(new_path))
     old_path.rename(ensure(new_path))
 
 
@@ -96,6 +99,7 @@ def mkdir_safe(s: str) -> pathlib.Path:
     path = pathlib.Path(s)
     try:
         path.mkdir()
+        log.debug("Creating %s", str(path))
     except FileExistsError:
         if is_empty(path):
             path.mkdir(exist_ok=True)
@@ -126,6 +130,7 @@ def unzip_file(file: IO) -> tempfile.TemporaryDirectory:
     tmp_dir = tempfile.TemporaryDirectory()
     with zipfile.ZipFile(file, "r") as archive:
         archive.extractall(tmp_dir.name)
+    log.debug("Extracting archive from %s", tmp_dir.name)
     return tmp_dir
 
 
