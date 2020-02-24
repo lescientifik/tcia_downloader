@@ -68,6 +68,7 @@ def mv(old_path: pathlib.Path, new_path: pathlib.Path) -> None:
     it will raises an error.
     """
     if new_path.exists():
+        log.error("%s already exists", str(new_path.absolute()))
         raise FileExistsError(str(new_path.absolute()))
     log.info("moving %s to %s", str(old_path), str(new_path))
     old_path.rename(ensure(new_path))
