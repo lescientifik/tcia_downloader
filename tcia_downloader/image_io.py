@@ -85,7 +85,7 @@ def extract_dcm_metadata(filename: str, reader: sitk.ImageFileReader) -> Dict:
     """
     file_object = pathlib.Path(filename)
     if not file_object.exists():
-        raise FileNotFoundError
+        raise FileNotFoundError(str(file_object))
     reader.SetFileName(filename)
     try:
         reader.ReadImageInformation()
@@ -172,4 +172,5 @@ def dcm_to_nii(source: pathlib.Path, dest: pathlib.Path) -> None:
     reader.SetFileNames(files)
     image = reader.Execute()
     sitk.WriteImage(image, str(ensure(dest)))
+    log.info("%s created", str(dest))
     return None

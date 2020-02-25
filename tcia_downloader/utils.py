@@ -1,10 +1,6 @@
 import re
 from concurrent.futures import as_completed, ThreadPoolExecutor
 from typing import Callable, Iterable, Generator
-import logging
-
-
-log = logging.getLogger(__name__)
 
 
 def remove_trailing_n(line: str) -> str:
@@ -59,7 +55,6 @@ def threaded_gen(
     for i in ite:
         results.append(pool.submit(func, i, *args, **kwargs))
     for result in as_completed(results):
-        log.debug(result.result().name)
         yield result.result()
 
 

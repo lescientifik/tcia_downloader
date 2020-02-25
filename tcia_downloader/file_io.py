@@ -131,7 +131,7 @@ def unzip_file(file: IO) -> tempfile.TemporaryDirectory:
     tmp_dir = tempfile.TemporaryDirectory()
     with zipfile.ZipFile(file, "r") as archive:
         archive.extractall(tmp_dir.name)
-    log.debug("Extracting archive from %s", tmp_dir.name)
+    log.debug("Extracting files from %s", tmp_dir.name)
     return tmp_dir
 
 
