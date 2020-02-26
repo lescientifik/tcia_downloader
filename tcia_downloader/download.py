@@ -1,7 +1,11 @@
+import json
+import logging
 import tempfile
 from typing import IO
 
 import requests
+
+log = logging.getLogger(__name__)
 
 # source
 TCIA_ENDPOINT = (
@@ -34,8 +38,15 @@ def tcia_downloader(seriesID: str) -> IO:
         TCIA_ENDPOINT, params={"SeriesInstanceUID": seriesID}, stream=True
     ) as r:
         r.raise_for_status()
-        # f = open(tmp_file, "wb")
+        metadata = r.headers.get("metadata")
+        metadata = json.loads(metadata)
+        filetype = metadata.get("Result").get("Type")[0]
+        if filetype != "ZIP":
+            raise ValueError(
+                "Supplied seriesID is not valid. No .zip file here", seriesID
+            )
         for chunk in r.iter_content(chunk_size=8192):
             if chunk:  # filter out keep-alive new chunks
                 tmp_file.write(chunk)
+        log.info("Series %s downloaded at %s", seriesID, tmp_file.name)
         return tmp_file

@@ -46,6 +46,7 @@ def classify_dcm(tmp_dirs: List, dest_folder: pathlib.Path) -> None:
             # Move the .dcm
             for m_data in metadatas:
                 old_path, new_path = new_dcmpath_from_metadata(m_data, dest_folder)
+                log.debug("Moving %s to %s", old_path.name, new_path.name)
                 mv(old_path, new_path)
 
 
@@ -116,11 +117,12 @@ if __name__ == "__main__":
     sys.path.append(str(package_dir))
 
     # setup
-    logging.basicConfig(level=logging.DEBUG)
     t_pool = ThreadPoolExecutor(3)  # multiThread
     m_reader = metadata_reader()  # dicom headers' reader
     manifest = pathlib.Path(sys.argv[1])
     destination_folder = mkdir_safe(sys.argv[2])
+    log_file = destination_folder / "log.txt"
+    logging.basicConfig(level=logging.DEBUG, filename=str(log_file))
     dcm_folder = destination_folder / "dcm"
     # basic checks
     if not all([manifest.exists(), manifest.is_file()]):

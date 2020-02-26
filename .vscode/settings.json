@@ -10,5 +10,5 @@
     "editor.formatOnSave": true,
     "files.trimFinalNewlines": true,
     "files.trimTrailingWhitespace": true,
-    "python.pythonPath": "/home/theo/miniconda3/envs/tcia/bin/python",
+    "python.pythonPath": "/Users/theo/miniconda3/envs/tcia/bin/python",
 }
