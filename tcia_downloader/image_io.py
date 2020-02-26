@@ -1,10 +1,11 @@
 import logging
 import pathlib
 from typing import Dict, Tuple
+import toml
 
 import SimpleITK as sitk
 
-from tcia_downloader.file_io import ensure
+from tcia_downloader.file_io import ensure, remove_ext
 from tcia_downloader.utils import get_valid_filepath
 
 log = logging.getLogger(__name__)
@@ -144,8 +145,17 @@ def new_dcmpath_from_metadata(
     return (old_path, new_path)
 
 
+def extract_all_dcm_metadata(dcm: str, reader: sitk.ImageFileReader):
+    reader.SetFileName(dcm)
+    reader.ReadImageInformation()
+    metadata = {tag: reader.GetMetaData(tag) for tag in reader.GetMetaDataKeys()}
+    return metadata
+
+
 def dcm_to_nii(source: pathlib.Path, dest: pathlib.Path) -> None:
     """Convert the given .dcm files from source folder to a 3D .nii file.
+
+    This will also save the headers in a .toml file
 
     Parameters
     ----------
@@ -172,4 +182,9 @@ def dcm_to_nii(source: pathlib.Path, dest: pathlib.Path) -> None:
     reader.SetFileNames(files)
     image = reader.Execute()
     sitk.WriteImage(image, str(ensure(dest)))
+    mdata_reader = metadata_reader()
+    metadata = extract_all_dcm_metadata(files[0], mdata_reader)
+    metadata_file = str(remove_ext(dest)) + ".toml"
+    with pathlib.Path(metadata_file).open("w") as metadata_file:
+        toml.dump(metadata, metadata_file)
     return None

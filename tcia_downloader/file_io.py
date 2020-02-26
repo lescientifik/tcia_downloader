@@ -147,3 +147,26 @@ def ensure(path: pathlib.Path):
     # https://stackoverflow.com/questions/53027297/way-for-pathlib-path-rename-to-create-intermediate-directories
     path.parent.mkdir(parents=True, exist_ok=True)
     return path
+
+
+def remove_ext(filepath: pathlib.Path) -> pathlib.Path:
+    """Remove file extension.
+
+    This function works recursively to remove all extensions found. If there is any dot in your filename,
+    this function will remove its right side until no dot are left...
+
+    Parameters
+    ----------
+    filepath : pathlib.Path
+        The file
+
+    Returns
+    -------
+    pathlib.Path
+        The new file
+    """
+    new_path = filepath.with_name(filepath.stem)
+    if str(new_path) == str(filepath):
+        return new_path
+    else:
+        return remove_ext(new_path)
