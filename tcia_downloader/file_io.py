@@ -1,6 +1,5 @@
 import logging
 import pathlib
-import tempfile
 import zipfile
 from typing import IO, TextIO
 
@@ -110,7 +109,7 @@ def mkdir_safe(s: str) -> pathlib.Path:
     return path
 
 
-def unzip_file(file: IO) -> tempfile.TemporaryDirectory:
+def unzip_file(file: IO, dest_folder: str) -> None:
     """Unzip the given file
 
     If you provide an instance of tempfile.NamedTemporaryFile, the file will
@@ -123,16 +122,13 @@ def unzip_file(file: IO) -> tempfile.TemporaryDirectory:
 
     Returns
     -------
-    tempfile.TemporaryDirectory
-        The temporary directory where files have been uncompressed.
-        This object has a .cleanup() method that allows you to remove it
-        and delete all its content afterwards.
+    List
+        The list of files extracted
     """
-    tmp_dir = tempfile.TemporaryDirectory()
     with zipfile.ZipFile(file, "r") as archive:
-        archive.extractall(tmp_dir.name)
-    log.debug("Extracting files from %s", tmp_dir.name)
-    return tmp_dir
+        archive.extractall(dest_folder)
+        log.debug("Extracting files to %s", dest_folder)
+        return [dest_folder + "/" + arch for arch in archive.namelist()]
 
 
 def ensure(path: pathlib.Path):
@@ -158,7 +154,8 @@ def ensure(path: pathlib.Path):
 def remove_ext(filepath: pathlib.Path) -> pathlib.Path:
     """Remove file extension.
 
-    This function works recursively to remove all extensions found. If there is any dot in your filename,
+    This function works recursively to remove all extensions found.
+    If there is any dot in your filename,
     this function will remove its right side until no dot are left...
 
     Parameters

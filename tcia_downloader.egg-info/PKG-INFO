@@ -1,0 +1,17 @@
+Metadata-Version: 1.2
+Name: tcia-downloader
+Version: 0.0.1
+Summary: TODO
+Home-page: https://github.com/lescientifik/tcia_downloader
+Author: Théophraste HENRY
+Author-email: theophraste.henry@gmail.com
+License: Apache License 2.0
+Description: UNKNOWN
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: Operating System :: OS Independent
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Healthcare Industry
+Classifier: Intended Audience :: Science/Research
+Classifier: Topic :: Scientific/Engineering :: Medical Science Apps.
+Requires-Python: >=3.7

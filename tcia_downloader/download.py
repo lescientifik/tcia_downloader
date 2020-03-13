@@ -1,7 +1,7 @@
 import json
 import logging
 import tempfile
-from typing import IO
+from typing import IO, Tuple
 
 import requests
 
@@ -13,7 +13,7 @@ TCIA_ENDPOINT = (
 )
 
 
-def tcia_downloader(seriesID: str) -> IO:
+def tcia_downloader(seriesID: str) -> Tuple[IO, str]:
     """Download a file using requests.
 
     TODO
@@ -49,4 +49,4 @@ def tcia_downloader(seriesID: str) -> IO:
             if chunk:  # filter out keep-alive new chunks
                 tmp_file.write(chunk)
         log.info("Series %s downloaded at %s", seriesID, tmp_file.name)
-        return tmp_file
+        return (tmp_file, seriesID)

@@ -1,0 +1,3 @@
+[console_scripts]
+tcia_dl = tcia_downloader.main:download
+
