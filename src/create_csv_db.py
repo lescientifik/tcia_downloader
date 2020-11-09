@@ -1,12 +1,11 @@
 """ https://github.com/pydicom/pydicom/issues/319#issuecomment-283003834
 """
+import argparse
 import collections
 from pathlib import Path
 
-import pydicom as dicom
 import pandas as pd
-import argparse
-
+import pydicom as dicom
 
 parser = argparse.ArgumentParser()
 parser.add_argument("source", help="the root folder where to recursively search and analyse dicom filess")
@@ -76,6 +75,7 @@ def extract_dcm_metadata_to_csv(folder: Path):
     df = pd.DataFrame.from_records(list_of_metadata_dict)
     df.to_xls(folder / "metadatas.xls", index=False)
     df.to_csv(folder / "metadatas.csv", index=False)
+
 
 if __name__ == '__main__':
     args = parser.parse_args()
