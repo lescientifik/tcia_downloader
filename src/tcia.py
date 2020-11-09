@@ -40,15 +40,15 @@ def tcia_dl(serie_id: str, dest_file: pathlib.Path) -> pathlib.Path:
 parser = argparse.ArgumentParser(
     description="The CLI to download images from the TCIA website"
 )
-parser.add_argument("--dest", "-d", help="The folder to download the images")
-parser.add_argument("--manifest", "-m", help="The manifest file")
+parser.add_argument("manifest", help="The manifest file")
+parser.add_argument("dest_folder", help="The folder to download the images")
 
 
 def download():
     args = parser.parse_args()
-    dest_folder = args.dest
+    dest_folder = args.dest_folder
     manifest = pathlib.Path(args.manifest)
-    destination_folder = mkdir_safe(dest_folder)
+    destination_folder = pathlib(dest_folder)
     print(f"destination folder: {destination_folder} | manifest: {manifest}")
     # basic checks
     if not all([manifest.exists(), manifest.is_file()]):
@@ -65,10 +65,6 @@ def download():
                    serie_id in series_id}
         for future in as_completed(futures):
             future.result()
-            # file = future.result()
-            # print(f"{file} downloaded !")
-            # assert file.exists(), "File has not been downloaded properly!"
-
 
 if __name__ == '__main__':
     download()

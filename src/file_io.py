@@ -1,7 +1,7 @@
 import logging
 import pathlib
 import zipfile
-from typing import IO, TextIO
+from typing import IO, TextIO, Union
 
 log = logging.getLogger(__name__)
 
@@ -73,7 +73,7 @@ def mv(old_path: pathlib.Path, new_path: pathlib.Path) -> None:
     old_path.rename(ensure(new_path))
 
 
-def mkdir_safe(s: str) -> pathlib.Path:
+def mkdir_safe(s: Union[pathlib.Path,str]) -> pathlib.Path:
     """Safely create a directory.
 
     If the directory already exists, this function will check if it is empty.
@@ -96,7 +96,10 @@ def mkdir_safe(s: str) -> pathlib.Path:
     DirectoryNotEmptyError
         If the path exists, and is not empty
     """
-    path = pathlib.Path(s)
+    if isinstance(s, pathlib.Path):
+        path = s
+    else:
+        path = pathlib.Path(s)
     try:
         path.mkdir()
         log.debug("Creating %s", str(path))
