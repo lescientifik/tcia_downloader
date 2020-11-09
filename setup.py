@@ -4,7 +4,7 @@ import setuptools
 #     long_description = fh.read()
 
 setuptools.setup(
-    name="tcia_downloader",
+    name="src",
     version="0.0.1",
     author="Théophraste HENRY",
     author_email="theophraste.henry@gmail.com",
@@ -24,5 +24,5 @@ setuptools.setup(
         "Topic :: Scientific/Engineering :: Medical Science Apps.",
     ],
     python_requires=">=3.7",
-    entry_points={"console_scripts": ["tcia_dl = tcia_downloader.main:download"]},
+    entry_points={"console_scripts": ["tcia_dl = src.main:download"]},
 )

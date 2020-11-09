@@ -3,7 +3,7 @@ import tempfile
 
 import pydicom
 import SimpleITK as sitk
-from tcia_downloader.image_io import metadata_to_dcm_filepath
+from src.image_io import metadata_to_dcm_filepath
 import pathlib
 
 

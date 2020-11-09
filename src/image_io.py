@@ -5,8 +5,8 @@ import toml
 
 import SimpleITK as sitk
 
-from tcia_downloader.file_io import ensure, remove_ext
-from tcia_downloader.utils import get_valid_filepath
+from src.file_io import ensure, remove_ext
+from src.utils import get_valid_filepath
 
 log = logging.getLogger(__name__)
 
