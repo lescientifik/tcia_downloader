@@ -17,6 +17,9 @@ TCIA_ENDPOINT = (
 def tcia_dl(serie_id: str, dest_file: pathlib.Path) -> pathlib.Path:
     """Download a file using requests.
     """
+    if dest_file.exists():
+        # do not download, already there!
+        return dest_file
     with requests.get(
             TCIA_ENDPOINT, params={"SeriesInstanceUID": serie_id}, stream=True
     ) as r:
