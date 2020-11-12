@@ -14,6 +14,7 @@ parser.add_argument("--jobs", "-j", help="Number of workers to use", default=4, 
 
 dicom.config.datetime_conversion = True
 
+
 def dicom_dataset_to_flat_dict(dicom_header):
     dicom_dict = {}
     repr(dicom_header)
@@ -31,8 +32,9 @@ def dicom_dataset_to_flat_dict(dicom_header):
             dicom_dict[dicom_value.keyword] = v
     return flatten(dicom_dict)
 
+
 def _sanitise_unicode(s):
-    return s.replace(u"\u0000", "").strip()
+    return s.replace(u"\u0000", "").strip().rstrip("\n")
 
 
 def _convert_value(v):
@@ -78,6 +80,8 @@ def extract_dcm_metadata_to_csv(folder: Path, n_jobs):
     else:
         list_of_metadata_dict = Parallel(n_jobs=n_jobs)(delayed(dcm_file_to_flat_dict)(file) for file in files)
     df = pd.DataFrame.from_records(list_of_metadata_dict)
+    print(df.convert_dtypes().dtypes)
+    print(df.PatientWeight.dtype)
     df.to_csv(folder / "metadatas.csv", index=False)
 
 
