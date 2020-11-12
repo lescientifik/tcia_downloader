@@ -1,6 +1,7 @@
 import argparse
 import json
 import pathlib
+import shutil
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
 import requests
@@ -51,7 +52,8 @@ def download():
     args = parser.parse_args()
     dest_folder = args.dest_folder
     manifest = pathlib.Path(args.manifest)
-    destination_folder = pathlib(dest_folder)
+    destination_folder = pathlib.Path(dest_folder)
+    destination_folder.mkdir(exist_ok=True)
     print(f"destination folder: {destination_folder} | manifest: {manifest}")
     # basic checks
     if not all([manifest.exists(), manifest.is_file()]):
@@ -59,6 +61,7 @@ def download():
 
     # processing pipeline
     open_manifest = manifest.open()
+    shutil.copy(manifest,destination_folder)
     lines = read_txt(open_manifest)  # manifest file
     lines = (remove_trailing_n(line) for line in lines)
     series_id = drop_until(lambda x: x == TAKE_AFTER, lines)
