@@ -46,7 +46,7 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument("manifest", help="The manifest file")
 parser.add_argument("dest_folder", help="The folder to download the images")
-parser.add_argument("--njobs", help="number of concurrent connections")
+parser.add_argument("--njobs", help="number of concurrent connections", type=int)
 
 
 def download():
