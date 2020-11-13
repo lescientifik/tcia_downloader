@@ -52,8 +52,8 @@ def download():
     args = parser.parse_args()
     dest_folder = args.dest_folder
     manifest = pathlib.Path(args.manifest)
-    destination_folder = pathlib.Path(dest_folder)
-    destination_folder.mkdir(exist_ok=True)
+    destination_folder = pathlib.Path(dest_folder) / manifest.name
+    destination_folder.mkdir(exist_ok=True, parents=True)
     print(f"destination folder: {destination_folder} | manifest: {manifest}")
     # basic checks
     if not all([manifest.exists(), manifest.is_file()]):
