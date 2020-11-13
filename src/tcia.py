@@ -46,6 +46,7 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument("manifest", help="The manifest file")
 parser.add_argument("dest_folder", help="The folder to download the images")
+parser.add_argument("--njobs", help="number of concurrent connections")
 
 
 def download():
@@ -65,7 +66,7 @@ def download():
     lines = read_txt(open_manifest)  # manifest file
     lines = (remove_trailing_n(line) for line in lines)
     series_id = drop_until(lambda x: x == TAKE_AFTER, lines)
-    with ProcessPoolExecutor(max_workers=3) as executor:
+    with ProcessPoolExecutor(max_workers=args.njobs) as executor:
         futures = {executor.submit(tcia_dl, serie_id, destination_folder / serie_id): serie_id
                    for
                    serie_id in series_id}
