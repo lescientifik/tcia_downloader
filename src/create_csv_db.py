@@ -1,12 +1,17 @@
 """ https://github.com/pydicom/pydicom/issues/319#issuecomment-283003834
 """
 import argparse
+import collections
 from collections.abc import MutableMapping
 from pathlib import Path
+from typing import List, Dict
 
 import pandas as pd
 import pydicom as dicom
 from joblib import Parallel, delayed
+
+from src.dicom_keys import DICOM_TAGS_TO_KEEP
+from src.filters import keep_slice, small_series
 
 parser = argparse.ArgumentParser()
 parser.add_argument("source", help="the root folder where to recursively search and analyse dicom filess")
@@ -72,25 +77,45 @@ def flatten(d, parent_key='', sep='_'):
     return dict(items)
 
 
-def extract_dcm_metadata_to_csv(folder: Path, n_jobs):
-    folder = folder.expanduser().resolve()
-    files = folder.rglob("*.dcm")
-    if n_jobs == 1:
-        list_of_metadata_dict = [dcm_file_to_flat_dict(file) for file in files]
-    else:
-        list_of_metadata_dict = Parallel(n_jobs=n_jobs)(delayed(dcm_file_to_flat_dict)(file) for file in files)
-    df = pd.DataFrame.from_records(list_of_metadata_dict)
-    print(df.convert_dtypes().dtypes)
-    print(df.PatientWeight.dtype)
-    df.to_csv(folder / "metadatas.csv", index=False)
-
-
 def dcm_file_to_flat_dict(file):
     print(f"Working on {file}")
     with dicom.dcmread(str(file), stop_before_pixels=True) as ds:
-        extract = flatten(dicom_dataset_to_flat_dict(ds))
-        extract["file_location"] = str(file.resolve())
-    return extract
+        extract = dicom_dataset_to_flat_dict(ds)
+        m_datas = {key: value for key, value in extract.items() if key in DICOM_TAGS_TO_KEEP}
+        m_datas["file_location"] = str(file.resolve())
+    return m_datas
+
+
+def merge_series(list_of_metas: List[Dict]) -> Dict:
+    """Merge series with the same SeriesUID and Acquisition Number together.
+    """
+    result = collections.defaultdict(list)
+    for metas in list_of_metas:
+        if "AcquisitionNumber" in metas:
+            result[(metas["SeriesInstanceUID"], metas["AcquisitionNumber"])].append(metas)
+        else:
+            result[(metas["SeriesInstanceUID"], 1)].append(metas)
+
+    return result
+
+
+def extract_dcm_metadata_to_csv(folder: Path, n_jobs, filter_slice=True, filter_series=True):
+    folder = folder.expanduser().resolve()
+    files = folder.rglob("*.dcm")
+    with Parallel(n_jobs=n_jobs) as parallel:
+        list_of_metadata_dict = parallel(delayed(dcm_file_to_flat_dict)(file) for file in files)
+        if filter_slice:
+            indexer = parallel(delayed(keep_slice)(slice_) for slice_ in list_of_metadata_dict)
+            list_of_metadata_dict = [x for x, y in zip(list_of_metadata_dict, indexer) if y]
+    metadatas_group_by_series_acq_number = merge_series(list_of_metadata_dict)
+    final_list_of_mdatas = []
+    for unique_series, series_slices in metadatas_group_by_series_acq_number.items():
+        if filter_series and small_series(series_slices):
+            continue
+        else:
+            final_list_of_mdatas.extend(series_slices)
+    df = pd.DataFrame.from_records(final_list_of_mdatas)
+    df.to_csv(folder / "metadatas.csv", index=False)
 
 
 if __name__ == '__main__':
