@@ -25,7 +25,6 @@ def extract_all_zip(folder, n_jobs):
 
 
 def unzip_file(file, root_folder):
-    print("root folder", root_folder)
     if is_zipfile(file):
         print(f"found following zip archive: {file.name}")
         print(f"{file}")
