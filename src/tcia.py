@@ -6,7 +6,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 
 import requests
 
-from src.file_io import mkdir_safe, read_txt
+from src.file_io import read_txt
 from src.utils import drop_until, remove_trailing_n
 
 TAKE_AFTER = "ListOfSeriesToDownload="
@@ -61,7 +61,7 @@ def download():
 
     # processing pipeline
     open_manifest = manifest.open()
-    shutil.copy(manifest,destination_folder)
+    shutil.copy(manifest, destination_folder)
     lines = read_txt(open_manifest)  # manifest file
     lines = (remove_trailing_n(line) for line in lines)
     series_id = drop_until(lambda x: x == TAKE_AFTER, lines)
@@ -71,6 +71,7 @@ def download():
                    serie_id in series_id}
         for future in as_completed(futures):
             future.result()
+
 
 if __name__ == '__main__':
     download()

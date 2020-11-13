@@ -5,19 +5,20 @@ from zipfile import ZipFile, is_zipfile
 
 from joblib import Parallel, delayed
 
-parser = argparse.ArgumentParser("unzip all files in a given folder")
-parser.add_argument("folder", help="the folder with all the zip file")
+parser = argparse.ArgumentParser("unzip all files in a given folder (recursive search)")
+parser.add_argument("source", help="the folder with all the zip file")
+parser.add_argument("dest", help="the folder where to unzip")
 parser.add_argument("--jobs", "-j", help="Number of workers to use", default=4, type=int)
 
 
-def extract_all_zip(folder, n_jobs):
-    folder = Path(folder).expanduser()  # necessary for filetype guess to work
-    unzip_root_folder = folder / "unzip"
+def extract_all_zip(source, dest, n_jobs):
+    source = Path(source).expanduser()  # necessary for filetype guess to work
+    unzip_root_folder = Path(dest).expanduser()
     unzip_root_folder.mkdir(exist_ok=True)
     print(unzip_root_folder)
-    assert folder.exists(), f"{folder} is not a valid directory"
-    print(f"unzipping all files in {folder}, using {n_jobs} worker")
-    files = folder.rglob("*")
+    assert source.exists(), f"{source} is not a valid directory"
+    print(f"unzipping all files in {source}, using {n_jobs} worker")
+    files = source.rglob("*")
     if n_jobs == 1:
         [unzip_file(file, unzip_root_folder) for file in files]
     else:
