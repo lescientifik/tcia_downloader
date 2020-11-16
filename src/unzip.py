@@ -18,7 +18,7 @@ def extract_all_zip(source, dest, n_jobs):
     print(unzip_root_folder)
     assert source.exists(), f"{source} is not a valid directory"
     print(f"unzipping all files in {source}, using {n_jobs} worker")
-    files = source.rglob("*")
+    files = list(source.rglob("*"))
     if n_jobs == 1:
         [unzip_file(file, unzip_root_folder) for file in files]
     else:
@@ -39,4 +39,4 @@ def unzip_file(file, root_folder):
 if __name__ == '__main__':
     args = parser.parse_args()
     print(args)
-    extract_all_zip(args.folder, args.jobs)
+    extract_all_zip(args.source, args.dest, args.jobs)
