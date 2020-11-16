@@ -16,6 +16,9 @@ from src.filters import keep_slice, small_series
 parser = argparse.ArgumentParser()
 parser.add_argument("source", help="the root folder where to recursively search and analyse dicom filess")
 parser.add_argument("--jobs", "-j", help="Number of workers to use", default=4, type=int)
+parser.add_argument("--filter_small_series", help="filter series with less than 25 slices in it", action="store_true")
+parser.add_argument("--filter_slices", help="keep only CT,MR,AC PT,RTSTRUC and SEG, original acquisition only",
+                    action="store_true")
 
 dicom.config.datetime_conversion = True
 
@@ -120,4 +123,5 @@ def extract_dcm_metadata_to_csv(folder: Path, n_jobs, filter_slice=True, filter_
 
 if __name__ == '__main__':
     args = parser.parse_args()
-    extract_dcm_metadata_to_csv(Path(args.source), args.jobs)
+    print(args)
+    extract_dcm_metadata_to_csv(Path(args.source), args.jobs, args.filter_slices, args.filter_small_series)
