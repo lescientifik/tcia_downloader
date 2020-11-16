@@ -21,6 +21,7 @@ def group_by_correct_volumes(slices_mdatas):
     # start from a list of flat dict
     new_by_inst_nb = sorted(slices_mdatas, key=operator.itemgetter("AcquisitionNumber", "InstanceNumber"))
     new_by_zloc = sorted(slices_mdatas, key=operator.itemgetter("AcquisitionNumber", "InstanceNumber"))
-    if not new_by_zloc == new_by_zloc:
+    if not new_by_zloc == new_by_inst_nb:
         print("discrepancy in slice order between z position and instance number!")
         print("Using zloc to discriminate slice")
+
