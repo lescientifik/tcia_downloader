@@ -17,7 +17,7 @@ assert SeriesDescription in DICOM_TAGS_TO_KEEP
 
 def original_image(metas):
     # specify modality in case dicom rt or seg are not original
-    return "ORIGINAL" in metas[ImageType] and metas[Modality] in ["CT", "PT", "MR"]
+    return ("ORIGINAL" in metas[ImageType]) and (metas[Modality] in ["CT", "PT", "MR"])
 
 
 def attn_corrected(metas):

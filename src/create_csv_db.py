@@ -38,6 +38,8 @@ def dicom_dataset_to_flat_dict(dicom_header):
         else:
             v = _convert_value(dicom_value.value)
             dicom_dict[dicom_value.keyword] = v
+        # add a z_location key for later use
+        dicom_dict["z_location"] = dicom_header.ImagePositionPatient[-1]
     return flatten(dicom_dict)
 
 
@@ -90,15 +92,11 @@ def dcm_file_to_flat_dict(file):
 
 
 def merge_series(list_of_metas: List[Dict]) -> Dict:
-    """Merge series with the same SeriesUID and Acquisition Number together.
+    """Merge series with the same SeriesUID.
     """
     result = collections.defaultdict(list)
     for metas in list_of_metas:
-        if "AcquisitionNumber" in metas:
-            result[(metas["SeriesInstanceUID"], metas["AcquisitionNumber"])].append(metas)
-        else:
-            result[(metas["SeriesInstanceUID"], 1)].append(metas)
-
+            result[metas["SeriesInstanceUID"]].append(metas)
     return result
 
 
