@@ -39,7 +39,8 @@ def dicom_dataset_to_flat_dict(dicom_header):
             v = _convert_value(dicom_value.value)
             dicom_dict[dicom_value.keyword] = v
         # add a z_location key for later use
-        dicom_dict["z_location"] = dicom_header.ImagePositionPatient[-1]
+        if hasattr(dicom_dict, "ImagePositionPatient"):
+            dicom_dict["z_location"] = dicom_header.ImagePositionPatient[-1]
     return flatten(dicom_dict)
 
 
