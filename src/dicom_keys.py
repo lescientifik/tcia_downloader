@@ -5,7 +5,7 @@ DICOM_TAGS_TO_KEEP = ['AccessionNumber', 'AcquisitionDate',
                       'ContrastBolusIngredientConcentration',
                       'ContrastBolusRoute', 'ContrastBolusStartTime', 'ContrastBolusStopTime', 'ContrastBolusTotalDose',
                       'ContrastBolusVolume', 'ContrastFlowDuration', 'ContrastFlowRate', 'ConversionType',
-                      'ConvolutionKernel', 'Columns'
+                      'ConvolutionKernel', 'Columns',
                       'CorrectedImage', 'CountsSource',
                       'DeadTimeFactor', 'DecayCorrection', 'DecayFactor',
                       'DoseCalibrationFactor', 'EnergyWeightingFactor',
